@@ -32,6 +32,7 @@
 		mmc0 = "sdhci@12510000";
 		mmc2 = "sdhci@12530000";
 		mmc4 = "dwmmc@12550000";
+		pmic0 = &max77686;
 	};
 
 	i2c@138d0000 {
@@ -40,7 +41,7 @@
 		samsung,i2c-max-bus-freq = <100000>;
 		status = "okay";
 
-		max77686_pmic@09 {
+		max77686: max77686 {
 			compatible = "maxim,max77686_pmic";
 			interrupts = <7 0>;
 			reg = <0x09 0 0>;
@@ -112,7 +113,7 @@
 
 				ldo8_reg: ldo8 {
 					regulator-compatible = "LDO8";
-					regulator-name = "VMIPI_1.0V";
+					regulator-name = "VMIPI_1.0V_AP";
 					regulator-min-microvolt = <1000000>;
 					regulator-max-microvolt = <1000000>;
 					regulator-mem-off;
@@ -251,7 +252,7 @@
 
 				ldo25_reg: ldo25 {
 					regulator-compatible = "LDO25";
-					regulator-name = "LCD_VCC_3.3V";
+					regulator-name = "LCD_VCC_2.8V";
 					regulator-min-microvolt = <2800000>;
 					regulator-max-microvolt = <2800000>;
 					regulator-mem-idle;
@@ -267,7 +268,7 @@
 
 				buck1_reg: buck1 {
 					regulator-compatible = "BUCK1";
-					regulator-name = "vdd_mif";
+					regulator-name = "VMIF_1.0V_AP";
 					regulator-min-microvolt = <850000>;
 					regulator-max-microvolt = <1100000>;
 					regulator-always-on;
@@ -277,7 +278,7 @@
 
 				buck2_reg: buck2 {
 					regulator-compatible = "BUCK2";
-					regulator-name = "vdd_arm";
+					regulator-name = "VARM_1.0V_AP";
 					regulator-min-microvolt = <850000>;
 					regulator-max-microvolt = <1500000>;
 					regulator-always-on;
@@ -287,7 +288,7 @@
 
 				buck3_reg: buck3 {
 					regulator-compatible = "BUCK3";
-					regulator-name = "vdd_int";
+					regulator-name = "VINT_1.1V_AP";
 					regulator-min-microvolt = <850000>;
 					regulator-max-microvolt = <1150000>;
 					regulator-always-on;
@@ -297,7 +298,7 @@
 
 				buck4_reg: buck4 {
 					regulator-compatible = "BUCK4";
-					regulator-name = "vdd_g3d";
+					regulator-name = "VG3D_1.0V_AP";
 					regulator-min-microvolt = <850000>;
 					regulator-max-microvolt = <1150000>;
 					regulator-boot-on;
@@ -330,7 +331,7 @@
 
 				buck8_reg: buck8 {
 					regulator-compatible = "BUCK8";
-					regulator-name = "VMEM_VDDF_3.0V";
+					regulator-name = "VMEM_VDDF_2.85V";
 					regulator-min-microvolt = <2850000>;
 					regulator-max-microvolt = <2850000>;
 					regulator-always-on;
