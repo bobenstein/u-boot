@@ -285,6 +285,11 @@ __weak int power_init_board(void)
 	return 0;
 }
 
+__weak int pmic_init_dm(void)
+{
+	return 0;
+}
+
 static int initr_announce(void)
 {
 	debug("Now running in RAM - U-Boot at: %08lx\n", gd->relocaddr);
@@ -774,6 +779,9 @@ init_fnc_t init_sequence_r[] = {
 #endif
 #ifdef CONFIG_ARCH_EARLY_INIT_R
 	arch_early_init_r,
+#endif
+#ifdef CONFIG_DM_PMIC
+	pmic_init_dm,
 #endif
 	power_init_board,
 #ifndef CONFIG_SYS_NO_FLASH
