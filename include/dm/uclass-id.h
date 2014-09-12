@@ -29,6 +29,9 @@ enum uclass_id {
 	UCLASS_SPI_FLASH,	/* SPI flash */
 	UCLASS_CROS_EC,		/* Chrome OS EC */
 
+	/* PMIC uclass and PMIC related uclasses */
+	UCLASS_PMIC,
+
 	UCLASS_COUNT,
 	UCLASS_INVALID = -1,
 };
