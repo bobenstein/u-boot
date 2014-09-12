@@ -35,6 +35,9 @@ enum uclass_id {
 	UCLASS_I2C_EEPROM,	/* I2C EEPROM device */
 	UCLASS_MOD_EXP,		/* RSA Mod Exp device */
 
+	/* PMIC uclass and PMIC related uclasses */
+	UCLASS_PMIC,
+
 	UCLASS_COUNT,
 	UCLASS_INVALID = -1,
 };
