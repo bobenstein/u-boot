@@ -95,4 +95,6 @@
 #define CONFIG_SYS_NO_FLASH
 #undef CONFIG_CMD_IMLS
 
+#define CONFIG_ERRNO_STR
+
 #endif	/* __CONFIG_H */
