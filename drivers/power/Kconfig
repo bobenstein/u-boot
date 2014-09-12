@@ -1,3 +1,71 @@
+config DM_PMIC
+	bool "Enable Driver Model for PMIC drivers (UCLASS_PMIC)"
+	depends on DM
+	---help---
+	This config enables the driver-model multi uclass PMIC support.
+	Its basic uclass type is: UCLASS_PMIC, which is designed to provide
+	a common I/O interface for pmic child devices of various uclass types.
+
+	Usually PMIC IC's provides more than one functionality, which means
+	that we should implement new uclass operations for each one. Usually
+	PMIC's provide those various functionalities by one or more interfaces.
+	And this could looks like this:
+
+	root device
+	|_ BUS 0 device (e.g. I2C0)                 - UCLASS_I2C/SPI/...
+	| |_ PMIC device (READ/WRITE ops)           - UCLASS_PMIC
+	|   |  (pmic sub-devices)
+	|   |_ REGULATOR device (ldo/buck/... ops)  - UCLASS_REGULATOR
+	|   |_ CHARGER device (charger ops)         - UCLASS_CHARGER (future)
+	|   |_ MUIC device (microUSB connector ops) - UCLASS_MUIC    (future)
+	|   |_ ...
+	|
+	|_ BUS 1 device (e.g. I2C1)                 - UCLASS_I2C/SPI/...
+	   |_ PMIC device (READ/WRITE ops)          - UCLASS_PMIC
+	     |  (pmic sub-devices)
+	     |_ RTC device (rtc ops)                - UCLASS_MUIC (future)
+
+	From the I/O interface point of view, there can be found two PMIC types:
+	- single I/O interface - then UCLASS_PMIC device should be a parent of
+	  all pmic sub-devices, where each is usually different uclass type, but
+	  need to access the same interface
+
+	- multiple I/O interfaces - for each interface the UCLASS_PMIC device
+	  should be a parent of only those devices (different uclass types),
+	  which needs to access the specified interface.
+
+	For each case, binding should be done automatically. If only device tree
+	nodes/subnodes are proper defined, then:
+	|_ the ROOT driver will bind the device for I2C/SPI node:
+	  |_ the I2C/SPI driver should bind a device for pmic node:
+	    |_ the PMIC driver should bind devices for its childs:
+	      |  (pmic sub-devices)
+	      |_ regulator (child)
+	      |_ charger   (child)
+	      |_ other     (child)
+
+	The same for other I/O bus nodes, if pmic uses more then one interface.
+
+	Note:
+	Each PMIC interface driver should use different compatible string.
+
+	There are few basic functions in the UCLASS_PMIC driver API, declared
+	in the file 'include/power/pmic.h':
+	 - int pmic_get(...);
+	 - int pmic_read(struct udevice *pmic, ...);
+	 - int pmic_write(struct udevice *pmic, ...);
+	For the simple implementation, in some cases the pmic uclass device,
+	can be self-sufficient to drive the PMIC functionality. In other case,
+	if each pmic sub-device(child) driver need access to the pmic specified
+	registers, it need to know only the register address and then the access
+	is done through the parent pmic driver. Like in the example:
+	_ root driver
+	|_ dev: bus I2C0                                   - UCLASS_I2C
+	| |_ dev: my_pmic        (read/write)     (parent) - UCLASS_PMIC
+	|   |_ dev: my_regulator (set value/etc.) (child)  - UCLASS_REGULATOR
+	So the call will looks like below:
+	'pmic_write(regulator->parent, addr, value, len);'
+
 config AXP221_POWER
 	boolean "axp221 / axp223 pmic support"
 	depends on MACH_SUN6I || MACH_SUN8I
