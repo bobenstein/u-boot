@@ -46,6 +46,9 @@ enum uclass_id {
 	UCLASS_USB_DEV_GENERIC,	/* USB generic device */
 	UCLASS_MASS_STORAGE,	/* Mass storage device */
 
+	/* Power Management */
+	UCLASS_PMIC,		/* PMIC I/O device */
+
 	UCLASS_COUNT,
 	UCLASS_INVALID = -1,
 };
