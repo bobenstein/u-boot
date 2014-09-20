@@ -629,6 +629,7 @@ libs-y += drivers/power/ \
 	drivers/power/fuel_gauge/ \
 	drivers/power/mfd/ \
 	drivers/power/pmic/ \
+	drivers/power/regulator/ \
 	drivers/power/battery/
 libs-y += drivers/spi/
 libs-$(CONFIG_FMAN_ENET) += drivers/net/fm/
