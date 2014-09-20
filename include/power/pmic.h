@@ -119,6 +119,24 @@ enum pmic_op_type {
 	PMIC_OP_SET,
 };
 
+static __inline__ const void *pmic_get_uclass_ops(struct udevice *dev,
+						  int uclass_id)
+{
+	const void *ops;
+
+	if (!dev)
+		return NULL;
+
+	if (dev->driver->id != uclass_id)
+		return NULL;
+
+	ops = dev->driver->ops;
+	if (!ops)
+		return NULL;
+
+	return ops;
+}
+
 /* drivers/power/pmic-uclass.c */
 int power_init_dm(void);
 struct udevice *pmic_get_by_name(int uclass_id, char *name);
