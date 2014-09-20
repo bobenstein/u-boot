@@ -37,6 +37,7 @@ enum uclass_id {
 
 	/* PMIC uclass and PMIC related uclasses */
 	UCLASS_PMIC,
+	UCLASS_PMIC_REGULATOR,
 
 	UCLASS_COUNT,
 	UCLASS_INVALID = -1,
