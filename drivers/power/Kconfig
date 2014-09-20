@@ -112,6 +112,14 @@ config DM_REGULATOR
 	Say y here to enable support for the axp221 / axp223 pmic found on most
 	sun6i (A31) / sun8i (A23) boards.
 
+config DM_REGULATOR_MAX77686
+	bool "Enable Driver Model for REGULATOR MAX77686"
+	depends on DM_REGULATOR && DM_PMIC_MAX77686
+	---help---
+	This config enables implementation of driver-model regulator uclass
+	features for REGULATOR MAX77686. The driver implements get/set api for:
+	value, enable and mode.
+
 config AXP221_DCDC1_VOLT
 	int "axp221 dcdc1 voltage"
 	depends on AXP221_POWER
