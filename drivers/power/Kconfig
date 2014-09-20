@@ -66,7 +66,38 @@ config DM_PMIC
 	So the call will looks like below:
 	'pmic_write(regulator->parent, addr, value, len);'
 
-config AXP221_POWER
+config DM_REGULATOR
+	bool "Enable Driver Model for REGULATOR drivers (UCLASS_REGULATOR)"
+	depends on DM
+	---help---
+	This config enables the driver-model regulator uclass support, which
+	provides implementation of driver model regulator uclass api.
+
+	Regulator uclass API calls:
+	To get the regulator device:
+	- regulator_get()             - get the regulator device
+
+	The regulator framework is based on a 'struct dm_regulator_ops'.
+	It provides a common function calls, for it's basic features:
+	- regulator_info()            - get the regulator info structure
+	- regulator_mode()            - get the regulator mode info structure
+	- regulator_get/set_value()   - operate on output voltage value
+	- regulator_get/set_current() - operate on output current value
+	- regulator_get/set_enable()  - operate on output enable state
+	- regulator_get/set_mode()    - operate on output operation mode
+
+	An optional and useful regulator framework features are two descriptors:
+	- struct dm_regulator_info - describes the regulator name and output limits
+	- struct dm_regulator_mode - describes the regulators operation mode
+
+	The regulator framework features are described in file:
+	- include/power/regulator.h
+
+	Main files:
+	- drivers/power/regulator-uclass.c - provides regulator common functions api
+	- include/power/regulator.h - define all structures required by the regulato
+
+	config AXP221_POWER
 	boolean "axp221 / axp223 pmic support"
 	depends on MACH_SUN6I || MACH_SUN8I
 	default y
