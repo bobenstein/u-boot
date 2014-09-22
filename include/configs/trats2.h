@@ -185,13 +185,11 @@ int get_soft_i2c_sda_pin(void);
 #define CONFIG_SOFT_I2C_GPIO_SDA	get_soft_i2c_sda_pin()
 
 /* POWER */
-#define CONFIG_POWER
-#define CONFIG_POWER_I2C
-#define CONFIG_POWER_MAX77686
-#define CONFIG_POWER_PMIC_MAX77693
-#define CONFIG_POWER_MUIC_MAX77693
-#define CONFIG_POWER_FG_MAX77693
-#define CONFIG_POWER_BATTERY_TRATS2
+#define CONFIG_DM_PMIC
+#define CONFIG_DM_PMIC_MAX77686
+#define CONFIG_DM_PMIC_I2C
+#define CONFIG_DM_REGULATOR
+#define CONFIG_DM_REGULATOR_MAX77686
 
 /* Security subsystem - enable hw_rand() */
 #define CONFIG_EXYNOS_ACE_SHA
@@ -210,7 +208,7 @@ int get_soft_i2c_sda_pin(void);
 #ifndef __ASSEMBLY__
 #include <power/max77686_pmic.h>
 
-#define KEY_PWR_PMIC_NAME		"MAX77686_PMIC"
+#define KEY_PWR_PMIC_NAME		"max77686"
 #define KEY_PWR_STATUS_REG		MAX77686_REG_PMIC_STATUS1
 #define KEY_PWR_STATUS_MASK		(1 << 0)
 #define KEY_PWR_INTERRUPT_REG		MAX77686_REG_PMIC_INT1
