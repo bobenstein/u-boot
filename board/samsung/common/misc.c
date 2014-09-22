@@ -93,12 +93,13 @@ void set_board_info(void)
 }
 #endif /* CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG */
 
-#ifdef CONFIG_LCD_MENU
+#if defined(CONFIG_LCD_MENU)
 static int power_key_pressed(u32 reg)
 {
+	unsigned status;
+	unsigned mask;
+#if defined(CONFIG_POWER)
 	struct pmic *pmic;
-	u32 status;
-	u32 mask;
 
 	pmic = pmic_get(KEY_PWR_PMIC_NAME);
 	if (!pmic) {
@@ -108,7 +109,21 @@ static int power_key_pressed(u32 reg)
 
 	if (pmic_probe(pmic))
 		return 0;
+#elif defined(CONFIG_DM_PMIC)
+	struct udevice *pmic;
 
+	pmic = pmic_get_by_name(UCLASS_PMIC, KEY_PWR_PMIC_NAME);
+
+	if (!pmic) {
+		printf("%s: Not found\n", KEY_PWR_PMIC_NAME);
+		return 0;
+	}
+
+	if (pmic_probe(pmic, NULL))
+		return 0;
+#else
+#error one of: CONFIG_DM_PMIC or CONFIG_POWER must be defined!
+#endif
 	if (reg == KEY_PWR_STATUS_REG)
 		mask = KEY_PWR_STATUS_MASK;
 	else
