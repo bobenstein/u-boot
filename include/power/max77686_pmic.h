@@ -122,7 +122,7 @@ enum {
 	MAX77686_REG_PMIC_BBAT		= 0x7e,
 	MAX77686_REG_PMIC_32KHZ,
 
-	PMIC_NUM_OF_REGS,
+	MAX77686_NUM_OF_REGS,
 };
 
 /* I2C device address for pmic max77686 */
