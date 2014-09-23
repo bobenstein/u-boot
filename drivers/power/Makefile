@@ -22,4 +22,6 @@ obj-$(CONFIG_POWER_FSL) += power_fsl.o
 obj-$(CONFIG_POWER_I2C) += power_i2c.o
 obj-$(CONFIG_POWER_SPI) += power_spi.o
 obj-$(CONFIG_DM_PMIC) += pmic-uclass.o
+obj-$(CONFIG_DM_PMIC_CMD) += cmd_pmic.o
 obj-$(CONFIG_DM_REGULATOR) += regulator-uclass.o
+obj-$(CONFIG_DM_REGULATOR_CMD) += cmd_pmic.o
