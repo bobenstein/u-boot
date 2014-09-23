@@ -20,5 +20,6 @@ obj-$(CONFIG_POWER_I2C) += power_i2c.o
 obj-$(CONFIG_POWER_SPI) += power_spi.o
 obj-$(CONFIG_DM_PMIC_SPI) += pmic_spi.o
 obj-$(CONFIG_DM_PMIC_I2C) += pmic_i2c.o
+obj-$(CONFIG_DM_PMIC) += cmd_pmic.o
 obj-$(CONFIG_DM_PMIC) += pmic-uclass.o
 obj-$(CONFIG_DM_REGULATOR) += regulator-uclass.o
