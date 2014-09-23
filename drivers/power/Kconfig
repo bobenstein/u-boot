@@ -66,6 +66,13 @@ config DM_PMIC
 	So the call will looks like below:
 	'pmic_write(regulator->parent, addr, value, len);'
 
+config DM_PMIC_MAX77686
+	bool "Enable Driver Model for PMIC MAX77686"
+	depends on DM_PMIC
+	---help---
+	This config enables implementation of driver-model pmic uclass features
+	for PMIC MAX77686. The driver implements read/write operations/
+
 config DM_REGULATOR
 	bool "Enable Driver Model for REGULATOR drivers (UCLASS_REGULATOR)"
 	depends on DM
