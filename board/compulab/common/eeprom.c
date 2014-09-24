@@ -33,7 +33,7 @@ static int cl_eeprom_read(uint offset, uchar *buf, int len)
 {
 	int res;
 	unsigned int current_i2c_bus = i2c_get_bus_num();
-
+#define CONFIG_SYS_I2C_EEPROM_BUS 1
 	res = i2c_set_bus_num(CONFIG_SYS_I2C_EEPROM_BUS);
 	if (res < 0)
 		return res;
