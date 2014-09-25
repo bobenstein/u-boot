@@ -94,10 +94,10 @@ struct spi_slave {
 	struct udevice *dev;	/* struct spi_slave is dev->parentdata */
 	uint max_hz;
 	uint mode;
-	unsigned int cs;
 #else
 	unsigned int bus;
 #endif
+	unsigned int cs;
 	u8 op_mode_rx;
 	u8 op_mode_tx;
 	unsigned int wordlen;
