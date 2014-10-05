@@ -80,6 +80,7 @@
 #define CONFIG_EFI_PARTITION
 #define CONFIG_CMD_PART
 #define CONFIG_PARTITION_UUIDS
+#define CONFIG_CMD_FS_GENERIC
 
 /* Miscellaneous configurable options */
 #define CONFIG_SYS_LONGHELP		/* undef to save memory */
