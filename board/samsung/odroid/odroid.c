@@ -378,15 +378,19 @@ static void board_gpio_init(void)
 
 static int pmic_init_max77686(void)
 {
-	struct pmic *p = pmic_get("MAX77686_PMIC");
+	struct udevice *p = pmic_get_by_name(UCLASS_PMIC_REGULATOR, "max77686");
 
-	if (pmic_probe(p))
+	if (pmic_probe(p, NULL))
 		return -ENODEV;
 
 	/* Set LDO Voltage */
-	max77686_set_ldo_voltage(p, 20, 1800000);	/* LDO20 eMMC */
-	max77686_set_ldo_voltage(p, 21, 2800000);	/* LDO21 SD */
-	max77686_set_ldo_voltage(p, 22, 2800000);	/* LDO22 eMMC */
+	pmic_set_ldo_val(p, 20, 1800000);	/* LDO20 eMMC */
+	pmic_set_ldo_val(p, 21, 2800000);	/* LDO21 SD */
+	pmic_set_ldo_val(p, 22, 2800000);	/* LDO22 eMMC */
+
+	pmic_set_ldo_mode(p, 20, OPMODE_ON);
+	pmic_set_ldo_mode(p, 21, OPMODE_ON);
+	pmic_set_ldo_mode(p, 22, OPMODE_ON);
 
 	return 0;
 }
@@ -414,15 +418,14 @@ int exynos_init(void)
 	gd->ram_size -= SZ_1M;
 	gd->bd->bi_dram[CONFIG_NR_DRAM_BANKS - 1].size -= SZ_1M;
 
+#ifdef CONFIG_SYS_I2C_INIT_BOARD
+	board_init_i2c();
+#endif
 	return 0;
 }
 
 int exynos_power_init(void)
 {
-#ifdef CONFIG_SYS_I2C_INIT_BOARD
-	board_init_i2c();
-#endif
-	pmic_init(I2C_0);
 	pmic_init_max77686();
 
 	return 0;
@@ -431,19 +434,19 @@ int exynos_power_init(void)
 #ifdef CONFIG_USB_GADGET
 static int s5pc210_phy_control(int on)
 {
-	struct pmic *p_pmic;
+	struct udevice *p_pmic;
 
-	p_pmic = pmic_get("MAX77686_PMIC");
+	p_pmic = pmic_get_by_name(UCLASS_PMIC_REGULATOR, "max77686");
 	if (!p_pmic)
 		return -ENODEV;
 
-	if (pmic_probe(p_pmic))
+	if (pmic_probe(p_pmic, NULL))
 		return -1;
 
 	if (on)
-		return max77686_set_ldo_mode(p_pmic, 12, OPMODE_ON);
+		return pmic_set_ldo_mode(p_pmic, 12, OPMODE_ON);
 	else
-		return max77686_set_ldo_mode(p_pmic, 12, OPMODE_LPM);
+		return pmic_set_ldo_mode(p_pmic, 12, OPMODE_LPM);
 }
 
 struct s3c_plat_otg_data s5pc210_otg_data = {
