@@ -1,0 +1,367 @@
+#
+# (C) Copyright 2014-2015 Samsung Electronics
+# Przemyslaw Marczak <p.marczak@samsung.com>
+#
+# SPDX-License-Identifier:      GPL-2.0+
+#
+
+PMIC framework based on Driver Model
+====================================
+TOC:
+1. Introduction
+2. How does it work
+3. Pmic driver api
+4. Pmic driver
+5. Pmic command
+6. Regulator driver api
+7. Design limitations
+8. Regulator driver
+9. Regulator command
+
+1. Introduction
+===============
+This is an introduction to driver-model multi uclass PMIC devices support.
+At present it is based on two uclass types:
+
+- UCLASS_PMIC - basic uclass type for PMIC I/O, which provides common read/write
+                interface.
+
+- UCLASS_PMIC_REGULATOR - additional uclass type for specific PMIC features,
+                          which are various voltage regulators.
+
+New files:
+UCLASS_PMIC:
+- drivers/power/pmic-uclass.c
+- include/power/pmic.h
+UCLASS_PMIC_REGULATOR:
+- drivers/power/regulator-uclass.c
+- include/power/regulator.h
+
+Commands:
+- drivers/power/cmd_pmic.c (pmic; regulator)
+
+2. How doees it work
+====================
+The Power Management Integrated Circuits (PMIC) are used in embedded systems
+to provide stable, precise and specific voltage power source with over-voltage
+and thermal protection circuits.
+
+The single PMIC can provide various functionalities with single or multiple
+interfaces, like in the example below.
+
+-- SoC
+ |
+ |            ______________________________________
+ | BUS 0     |       Multi interface PMIC IC        |--> LDO out 1
+ | e.g.I2C0  |                                      |--> LDO out N
+ |-----------|---- PMIC device 0 (READ/WRITE ops)   |
+ | or SPI0   |    |_ REGULATOR device (ldo/... ops) |--> BUCK out 1
+ |           |    |_ CHARGER device (charger ops)   |--> BUCK out M
+ |           |    |_ MUIC device (microUSB con ops) |
+ | BUS 1     |    |_ ...                            |---> BATTERY
+ | e.g.I2C1  |                                      |
+ |-----------|---- PMIC device 1 (READ/WRITE ops)   |---> USB in 1
+ . or SPI1   |    |_ RTC device (rtc ops)           |---> USB in 2
+ .           |______________________________________|---> USB out
+ .
+
+Since U-Boot provides driver model features for I2C and SPI bus drivers,
+the PMIC devices should also support this. With the new basic uclass types
+for PMIC I/O and regulator features, PMIC drivers can simply provide common
+features, with multiple interface and instance support.
+
+Basic design assumptions:
+
+- Common I/O api - UCLASS_PMIC
+The main assumption is to use UCLASS_PMIC device to provide I/O interface,
+for devices other uclass types. It is no matter what is the type of device
+physical I/O interface. Usually PMIC devices are using SPI or I2C interface,
+but use of any other interface (e.g. when PMIC is not directly connected
+to the SoC) - is now possible. Drivers can use the same read/write api.
+
+- Common regulator api - UCLASS_REGULATOR
+For setting the attributes of verious types of regulators with common api,
+this uclass can be implemented. This allows to drive the each regulator output
+value, on/off state and custom defined operation modes. It also provides the
+user interface for all operations.
+For the very simple implementation, the regulator drivers are not required,
+so the code could base on pmic read/write only.
+
+When board device-tree file includes pmic subnode and the U_Boot compatible
+driver exists, then the pmic device bind should looks like this:
+
+|_ root - will bind the device for I2C/SPI bus node
+  |_ i2c/spi - should bind a device for pmic node
+    |_ pmic (parent) - should bind child devices for its features
+      |_ regulator (child)
+      |_ charger   (child)
+      |_ other     (child)
+
+Usually PMIC design provides:
+ - single I/O interface (single UCLASS_PMIC driver)
+   Then UCLASS_PMIC device should be a parent of all pmic devices, where each
+   is usually different uclass type, but need to access the same interface
+
+ - multiple I/O interfaces (UCLASS_PMIC driver for each)
+   For each interface the UCLASS_PMIC device should be a parent of only those
+   devices (different uclass types), which needs to access the specified
+   interface.
+
+3. Pmic driver api
+===================
+To use the pmic API, config: CONFIG_DM_PMIC is required.
+The new driver API is very simple and is based on 'struct dm_pmic_ops',
+which define two basic operations: device read and write.
+
+The platform data is introduced as 'struct pmic_platdata', to keep an info
+about the device interface.
+
+The api is described in file: 'include/power/pmic.h'
+
+3.1 Getting the device:
+- By name only - usefull if the name is unique, or only one pmic device exists:
+  int pmic_get(char *name, struct udevice **pmic);
+
+- By I2C or SPI bus number and chip address - when few pmic devices exists:
+  int pmic_i2c_get(int bus, int addr, struct udevice **pmic)
+  int pmic_spi_get(int bus, int cs, struct udevice **pmic);
+
+- To get the given PMIC/REGULATOR I/O dev by pmic platdata:
+  int pmic_io_dev(struct udevice *pmic, struct udevice **pmic_io);
+
+3.2 Pmic platdata function calls - useful for pmic/regulator commands:
+- Get the device interface type:
+  int pmic_if_type(struct udevice *pmic);
+
+- Get the device interface bus number:
+  int pmic_if_bus_num(struct udevice *pmic);
+
+- Get the device addres(I2C) or cs(SPI) on bus:
+  int pmic_if_addr_cs(struct udevice *pmic);
+
+- Get the device max internal address offset:
+  int pmic_if_max_offset(struct udevice *pmic);
+
+- Get the device interface name string:
+  const char *pmic_if_str(struct udevice *pmic);
+
+3.3. Device I/O interface
+Can be used with UCLASS_PMIC devices:
+- Read the device 'reg':
+  int pmic_read(struct udevice *pmic, unsigned reg, unsigned char *val);
+
+- Write to the device 'reg':
+  int pmic_write(struct udevice *pmic, unsigned reg, unsigned char val);
+
+4. Pmic driver
+============================
+As an example of the pmic driver, please take a look into the MAX77686 driver
+'drivers/power/pmic/max77686.c' and the description in 'include/power/pmic.h'
+
+The pmic driver can be defined by U_BOOT_DRIVER() macro:
+
+U_BOOT_DRIVER(pmic_max77686) = {
+	.name = "max77686 pmic",
+	.id = UCLASS_PMIC,
+	.of_match = max77686_ids,     - Allows to bind by compatible
+	.bind = max77686_bind,        - Function called at device bind
+	.ops = &max77686_ops,         - Pmic api function calls
+	.platdata_auto_alloc_size = sizeof(struct pmic_platdata),
+};
+
+To bind the pmic device, field '.of_match' is required with proper compatible.
+To make the device useful with the pmic command, the driver must define
+the size of platform data allocation size.
+
+Driver ops:
+.read = max77686_read() - allows to use pmic_read()
+.write = max77686_write() - allows to use pmic_write()
+
+Driver bind:
+- max77686_bind(): is called on device bind and:
+  - fills the platform data structure
+  - bind MAX77686 regulator child device
+
+Note:
+For the simply case, when regulator driver doesn't exists, the driver bind
+method should only fill the platform data structure.
+
+5. Pmic command
+===============
+To use the pmic command, config: CONFIG_DM_PMIC_CMD is required.
+The new pmic command allows to:
+- list pmic devices
+- choose the current device (like the mmc command)
+- read or write the pmic register
+- dump all pmic registers
+
+The pmic platform data is mandatory to use this command with devices.
+This command can use only UCLASS_PMIC devices, since this uclass is designed
+for pmic I/O operations only.
+
+Command options (pmic [option]):
+- list                     - list available PMICs
+- dev <id>                 - set id to current pmic device
+- pmic dump                - dump registers
+- pmic read <reg>          - read register
+- pmic write <reg> <value> - write register
+
+Example of usage:
+# pmic list           - chose one dev Id, e.g. 3
+# pmic dev 0          - set dev 0 as current device
+# pmic dump           - dump the registers of the current pmic dev
+# pmic read 0x0       - read the register at address 0x0
+# pmic write 0x0 0x1  - write 0x1 to the register at addres 0x0
+
+6. Regulator driver API
+===================================
+To use the regulator API, config: CONFIG_DM_REGULATOR is required.
+The same as for the pmic devices, regulator drivers should alloc platform data.
+It's the same type as for uclass pmic drivers: 'struct pmic_platdata', and can
+be shared with the parent pmic device.
+
+The api is described in file: 'include/power/regulator.h'
+
+6.1 Getting the device:
+- By name - usefull for unique names, or if only one regulator device exists:
+  int regulator_get(char *name, struct udevice **regulator);
+
+- By I2C or SPI bus number and chip address of pmic parent - when few regulator
+  devices exists:
+  int regulator_i2c_get(int bus, int addr, struct udevice **regulator);
+  int regulator_spi_get(int bus, int cs, struct udevice **regulator);
+
+6.2 Pmic platdata function calls - useful for pmic/regulator commands
+It's the same as for Point 3.2.
+
+6.3 Device I/O interface
+According to the framework assumptions, where uclass pmic device is a parent
+of pmic devices other uclass types, the regulator devices should use uclass
+pmic interface, with the parent as the device, like this:
+- pmic_read(regulator->parent, some_reg, some_val);
+- pmic_write(regulator->parent, some_reg, &some_val);
+
+6.4 Device regulator operations
+The regulator function calls are based on few data types:
+- enum regulator_type {...} - standard types: LDO, BUCK and DVS
+- enum regulator_out_state {...} - ON/OFF states
+- struct regulator_value_desc {...} - output name and value limits
+- struct regulator_mode_desc {...} - output operation mode value and name
+- struct dm_regulator_ops {...} - regulator driver function calls
+
+The first argument is always device. And the device uclass id must be always:
+- 'UCLASS_PMIC_REGULATOR'
+
+Function details are described in regulator header. The basic features are:
+- Get the number of the given regulator type outputs
+  int regulator_get_cnt(struct udevice *dev, int type, int *cnt);
+
+- Get the given output value descriptor
+  int regulator_get_value_desc(struct udevice *dev, int type, int number,
+                               struct regulator_value_desc **desc);
+
+- Get the given output mode descriptor array (usually more then one mode)
+  int regulator_get_mode_desc(struct udevice *dev, int type, int number,
+                              int *mode_cnt, struct regulator_mode_desc **desc);
+
+- Get or set the given output voltage value (micro Volts unit)
+  int regulator_get_value(struct udevice *dev, int type, int number, int *val);
+  int regulator_set_value(struct udevice *dev, int type, int number, int val);
+
+- Get or set the given output on/off state
+  int regulator_get_state(struct udevice *dev, int type, int number, int *state);
+  int regulator_set_state(struct udevice *dev, int type, int number, int state);
+
+- Get or set the given output operation mode (mode defined by the driver)
+  int regulator_get_mode(struct udevice *dev, int type, int number, int *mode);
+  int regulator_set_mode(struct udevice *dev, int type, int number, int mode);
+
+7. Design limitations:
+The child devices of the single parent device (pmic, interface), should not
+provide it's features by more then one device each uclass types.
+It's because, e.g. regulator_i2c_get() function will:
+- look for the pmic device at address given by args,
+- return it's first child device, which uclass type is 'UCLASS_PMIC_REGULATOR'
+So, if more then one pmic child device exists, each the same uclass type, then
+the regulator_i2c_get(), will return only first device. But usually there is no
+need to implement the same functionality with more than one instance of each
+uclass type device.
+
+8. Regulator driver
+======================================
+As an example of the regulator driver, please take a look into the MAX77686
+regulator driver (drivers/power/regulator/max77686.c). The driver structure:
+
+U_BOOT_DRIVER(max77686_regulator) = {
+        .name = "max77686 regulator",
+        .id = UCLASS_PMIC_REGULATOR,
+        .ops = &reg_max77686_ops,
+        .ofdata_to_platdata = reg_max77686_ofdata_to_platdata,
+        .priv_auto_alloc_size = sizeof(struct max77686_regulator_info),
+};
+
+This driver structure is different than for the pmic driver.
+
+It doesn't provide:
+.of_match
+.platdata_auto_alloc_size
+
+Both are not required in this case, because .of_match is known at the bind call,
+and the platdata pointer is the same as for the parent device (pmic).
+
+But instead of the pmic driver, this driver provides:
+.of_data_to_platdata
+
+And this call above is responsible for fill the regulator outputs descriptors,
+which are described in device-tree, e.g. 'arch/arm/dts/exynos4412-odroid.dts'
+
+The bind for this driver is called in pmic/max77686.c driver bind.
+After the pmic driver successful bind, there are two max77686 devices:
+- max77686 pmic (parent)         - UCLASS_PMIC
+ '- max77686 regulator (child)   - UCLASS_PMIC_REGULATOR
+
+For the I/O, this driver uses pmic_read/write calls, with the parent device
+as the first argument, e.g.: pmic_read(dev->parent, adr, &val);
+
+9. Regulator command
+====================
+To use the pmic command, config: CONFIG_DM_REGULATOR_CMD is required.
+
+The extension for the 'pmic' command is 'regulator' command.
+This actually uses the same code, but provides the interface
+to pmic optional 'UCLASS_PMIC_REGULATOR' operations.
+
+If pmic device driver provides support to this another pmic
+uclass, then this command provides useful user interface.
+
+This was designed to allow safe I/O access to the pmic device,
+without the pmic documentation. If driver provide each regulator
+output - value and mode descriptor - then user can operate on it.
+
+Usage:
+regulator list     - list UCLASS regulator devices
+regulator dev [id] - show or set operating regulator device
+regulator dump     - dump registers of current regulator
+regulator [ldo/buck/dvs][N] [name/state/desc] - print regulator(s) info
+regulator [ldoN/buckN/dvsN] [setval/setmode] [mV/modeN] [-f] - set val (mV)
+
+The -f option (forcibly) or mode - only if descriptor is available
+
+Example of usage:
+regulator list                - look after regulator 'Id' number
+regulator dev 'Id'            - set current device
+regulator ldo state           - list state of current device all ldo's
+regulator ldo desc            - list ldo's descriptors
+regulator ldo1 setval 1000    - set device ldo 1 voltage to 1000mV
+regulator ldo1 setval 1200 -f - if value exceeds limits - set force
+regulator ldo1 setmode 5      - set device ldo 1 mode to '5'
+
+The same for 'buck' regulators.
+
+Note:
+The regulator descriptor, 'min' and 'max' limits prevents setting
+unsafe value. But sometimes it is useful to change the regulator
+value for some test - so the force option (-f) is available.
+This option is not available for change the mode, since this depends
+on a pmic device design, but the required voltage value can change,
+e.g. if some hardware uses pins header.
