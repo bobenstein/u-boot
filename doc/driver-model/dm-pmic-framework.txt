@@ -1,0 +1,450 @@
+#
+# (C) Copyright 2014 Samsung Electronics
+# Przemyslaw Marczak <p.marczak@samsung.com>
+#
+# SPDX-License-Identifier:      GPL-2.0+
+#
+
+PMIC framework based on Driver Model
+====================================
+TOC:
+1. Introduction
+2. How does it work
+3. Driver API
+4. Simple UCLASS_PMIC driver
+5. Pmic command
+6. Uclass UCLASS_PMIC_REGULATOR API
+7. Simple UCLASS_PMIC_REGULATOR driver
+8. Regulator command
+
+1. Introduction
+===============
+This is an introduction to driver-model multi class PMIC support.
+It starts with UCLASS_PMIC - a common PMIC class type for I/O, which
+doesn't need to implement any specific operations and features beside
+the platform data, which is a 'struct pmic_platdata' defined in file:
+- 'include/power/pmic.h'
+
+New files:
+- pmic-uclass.c - provides a common code for UCLASS_PMIC drivers
+- pmic_i2c.c    - provides dm interface for i2c pmic drivers
+- pmic_spi.c    - provides dm interface for spi pmic drivers
+
+Those files are based on a current PMIC framework files and code.
+And the new files are introduced to avoid code mess and allow to
+make an easy drivers migration. The old pmic is still kept.
+
+Changes:
+- add uclass-id: UCLASS_PMIC
+- add new configs:
+  CONFIG_DM_PMIC - enables driver model pmic framework and requires one
+  or both of:
+  CONFIG_DM_PMIC_SPI - enables an interface to pmic SPI
+  CONFIG_DM_PMIC_I2C - enables an interface to pmic I2C
+
+The old pmic interface API worked very well so it is kept, but the framework
+architecture is changed.
+
+2. How doees it work
+====================
+The framework init starts in file: drivers/power/pmic-uclass.c
+The function pmic_init_dm() looks after the 'pmic' alias in the device-tree
+and do the driver bind.
+If board uses more than one PMIC device, then a few 'pmic' aliases should
+be defined with numbers, e.g. pmic0, pmic1...
+
+Note:
+The I2C doesn't use the driver model yet, so the drivers are bind thanks to the
+'pmic' alias.
+
+3. PMIC drivers API
+===================
+The new API is as simple as previously:
+
+File: drivers/power/pmic-uclass.c:
+- void power_init_dm(void)
+  The main init function, called after the i2c init and before power_init_board.
+  Bind the UCLASS_PMIC drivers.
+
+- struct udevice *pmic_get_by_name(int uclass_id, char *name)
+  This function provides similar function as old pmic_get(), but the returned
+  device pointer doesn't require any allocation. 
+  The uclass_id argument if to chose proper device uclass, e.g. pmic or next
+  others, pmic related.
+
+- struct udevice *pmic_get_by_interface(int uclass_id, int bus, int addr_cs)
+  This is similar function as previous but is designed for boards with more
+  than one pmic device or the same device instances. In this case we can't
+  get the device by the name, so the best and accurate method is to get it by
+  known uclass, bus and address or cs(spi). This is new framework feature.
+
+- const char *pmic_if_str(int interface)
+  This function returns the interface name string for i2c or spi, and uses
+  pmic interface enum from: include/power/pmic.h 
+
+- int pmic_check_reg(struct pmic_platdata *p, unsigned reg)
+  This function check if the given register number is valid for the given
+  pmic_platdata.
+
+- int pmic_reg_write(struct udevice *dev, unsigned reg, unsigned val)
+  The same functionality as in old framework but changed to driver-model.
+
+- int pmic_reg_read(struct udevice *dev, unsigned reg, unsigned *val)
+  The same functionality as in old framework but changed to driver-model.
+
+- int pmic_probe(struct udevice *dev, struct spi_slave *spi_slave)
+  The same functionality as in an old framework but changed to driver model,
+  and extended by support to both pmic interfaces.
+
+The below functions, are implemented with use of common calls, described above.
+
+File: drivers/power/pmic_i2c.c:
+- int pmic_i2c_reg_write(struct udevice *dev, unsigned reg, unsigned val)
+- int pmic_i2c_reg_read(struct udevice *dev, unsigned reg, unsigned *val)
+- int pmic_i2c_probe(struct udevice *dev)
+
+File: drivers/power/pmic_spi.c:
+- int pmic_spi_reg_write(struct udevice *dev, unsigned reg, unsigned val)
+- int pmic_spi_reg_read(struct udevice *dev, unsigned reg, unsigned *val)
+- struct spi_slave *pmic_spi_probe(struct udevice *dev)
+
+4. Simple UCLASS_PMIC driver
+============================
+At this stage the framework supports only drivers that have proper fdt alias.
+The alias is "pmic" or "pmicN".
+
+The exaple of dts node():
+	aliases {
+		...
+		...
+		pmic0 = &simple_pmic0;
+	}
+
+	i2c@some_addr {
+		; some i2c data
+
+		simple_pmic0: simple_pmic@09 {
+			compatible = "vandor, simple_pmic";
+			reg = <0x09 0 0>;
+		}
+
+The exaple of driver code:
+
+/**
+ * simple_pmic_probe(...) - this function is optional and is a preffered way
+ * to bind the "simple regulator" device. 
+ * Than we have:
+ * device: "simple_pmic"       - provides device I/O
+ * device: "simple regulator"  - provides regualtor operations and is binded
+ *                               as a child of "simple_pmic"
+ */
+static int simple_pmic_probe(struct udevice *parent)
+{
+	struct udevice *reg_dev;
+	struct driver *reg_drv;
+	int ret;
+
+	reg_drv = lists_driver_lookup_name("simple regulator");
+	if (!reg_drv) {
+		error("%s regulator driver not found!\n", parent->name);
+		return 0;
+	}
+
+	if (!parent->platdata) {
+		error("%s platdata not found!\n", parent->name);
+		return -EINVAL;
+	}
+
+	ret = device_bind(parent, reg_drv, parent->name, parent->platdata,
+			  parent->of_offset, &reg_dev);
+	if (ret)
+		error("%s regulator bind failed", parent->name);
+
+	/**
+	 * Return an error only if no parent platdata set
+	 * so if no regulator found - still have pmic I/O.
+	 * This scheme will be used in most board configs.
+	 */
+	return 0;
+}
+
+static int simple_pmic_ofdata_to_platdata(struct udevice *dev)
+{
+	struct pmic_platdata *pl = dev->platdata;
+
+	/**
+	 * Here, driver should init the platdata structure based on device-tree,
+	 * The fields bus, interface, byte_order and the struct spi or i2c,
+	 * provide information about I/O acces, so are required.
+	 */
+	const void *blob = gd->fdt_blob;
+	int node = dev->of_offset;
+	int parent;
+
+	pl->interface = PMIC_I2C;
+	pl->regs_num = PMIC_NUM_OF_REGS;
+
+	parent = fdt_parent_offset(blob, node);
+
+	if (parent < 0) {
+		error("%s: Cannot find node parent", __func__);
+		return -EINVAL;
+	}
+
+	pl->bus = i2c_get_bus_num_fdt(parent);
+	if (pl->bus < 0) {
+		debug("%s: Cannot find bus num\n", __func__);
+		return -EINVAL;
+	}
+
+	pl->hw.i2c.addr = fdtdec_get_int(blob, node, "reg", SIMPLE_PMIC_I2C_ADDR);
+	pl->hw.i2c.tx_num = 1;
+	
+	return 0;
+}
+
+static const struct udevice_id simple_pmic_ids[] = {
+	{ .compatible = "vendor,simple_pmic"},
+	{ }
+};
+
+U_BOOT_DRIVER(simple_pmic) = {
+	.name = "simple pmic",
+	.id = UCLASS_PMIC,
+	.of_match = simple_pmic_ids,
+	.probe = simple_pmic_probe,
+	.ofdata_to_platdata = simple_pmic_ofdata_to_platdata,
+	.platdata_auto_alloc_size = sizeof(struct pmic_platdata),
+};
+
+5. Pmic command
+===============
+This is based on an old pmic command code - the new one uses
+the driver model pmic API. The previous pmic I/O functionalities,
+stays unchanged. And now read/write is the main pmic command
+purpose. This command can use only UCLASS_PMIC devices,
+since this uclass is designed for pmic I/O operations only.
+
+Command options (pmic [option]):
+- list                     - list available PMICs
+- dev <id>                 - set id to current pmic device
+- pmic dump                - dump registers
+- pmic read <reg>          - read register
+- pmic write <reg> <value> - write register
+
+Example of usage:
+# pmic list           - chose one dev Id, e.g. 3
+# pmic dev 3          - set dev 3 as current device
+# pmic dump           - dump the registers of pmic dev id 3
+# pmic read 0x0       - read the register of addres 0x0 
+# pmic write 0x0 0x1  - write 0x1 to the register of addres 0x0 
+
+The user interface is similar to the 'mmc' command.
+
+Each pmic device driver should provide at least UCLASS_PMIC support,
+as a basic pmic device I/O interface.
+
+6. Uclass UCLASS_PMIC_REGULATOR API
+===================================
+To use the regulator API, config: CONFIG_DM_REGULATOR is required.
+
+Driver API is simple and clear:
+To get the regulator device we can use two functions:
+- pmic_get_by_name(...)
+- pmic_get_by_interface(...)
+
+This returns "struct udevice *" pointer to uclass regulator device,
+which can provide API functions.
+
+To operate on device regulators, we can use API functions
+(if provided by the driver):
+- pmic_ldo_cnt(...)
+- pmic_buck_cnt(...)
+- pmic_get_ldo_val(...)
+- pmic_set_ldo_val(...)
+- pmic_get_ldo_mode(...)
+- pmic_set_ldo_mode(...)
+- pmic_get_buck_val(...)
+- pmic_set_buck_val(...)
+- pmic_get_buck_mode(...)
+- pmic_set_buck_mode(...)
+
+For detailed description please look into the file:
+- include/power/regulator.h
+
+7. Simple UCLASS_PMIC_REGULATOR driver
+======================================
+The regulator ops implementation can be different for each driver,
+so this is only a piece of driver design.
+As a reference, please take the MAX77686 pmic and regulator drivers.
+- drivers/power/pmic/max77686.c
+- drivers/power/regulator/max77686.c
+
+The regulator driver code should look like below:
+(Please read the 'include/power/regulator.h' for more details)
+
+Note:
+The regulator device should act as a child of pmic device.
+This is a natural scheme of a physical PMIC IC:
+
+Some PMIC physical IC:
+ |_ dev pmic        (parent) - simple and sufficient for the most board configs
+   |_ dev regulator (child)  - provide regulator operations
+   |_ dev other     (child)  - some other pmic uclasses, (in the future)
+
+struct regulator_desc *simple_regulator_get_val_desc(struct udevice *dev,
+						     int d_type, int d_num)
+{
+	/* Here returns regulator value descriptor */
+	return NULL;
+}
+
+static struct regulator_mode_desc *
+simple_regulator_get_mode_desc_array(struct udevice *dev, int d_type, int d_num,
+                              int *d_mode_cnt)
+{
+	/* Here return arra of mode descriptors for given device */
+	return NULL;
+}
+
+static int simple_regulator_get_ldo_cnt(struct udevice *dev)
+{
+	/* Here return regulators ldo count */
+	return 0;
+}
+
+static int simple_regulator_get_buck_cnt(struct udevice *dev)
+{
+	/* Here return regulator buck count */
+	return 0;
+}
+
+static int simple_regulator_ldo_val(struct udevice *dev, int op,
+				    int ldo, int *uV)
+{
+	/* Here return or sets given ldo value in uV */
+	return 0;
+}
+
+static int simple_regulator_buck_val(struct udevice *dev, int op,
+				    int buck, int *uV)
+{
+	/* Here return or sets given buck value in uV */
+	return 0;
+}
+
+static int simple_regulator_ldo_mode(struct udevice *dev, int op, int ldo,
+				     int *opmode)
+{
+	/* Here return or sets regulator ldo mode */
+	return 0;
+}
+
+static int simple_regulator_buck_mode(struct udevice *dev, int op, int buck,
+				      int *opmode)
+{
+	/* Here return or sets regulator buck mode */
+	return 0;
+}
+
+static int simple_regulator_ofdata_to_platdata(struct udevice *dev)
+{
+	/**
+	 * PMIC Interface, Case 1: common
+	 * If PMIC uses only one (SPI/I2C) physical interface for driving
+	 * it's functionalities.
+	 *
+	 * Then the bind of "simple regulator" device in the "simple pmic" probe
+	 * is called with args:
+	 * ret = device_bind(parent, reg_drv, parent->name, parent->platdata,
+	 *                   parent->of_offset, &reg_dev);
+	 */
+
+	/**
+	 * PMIC Interface, case 2: independent
+	 * If PMIC uses more then one (SPI/I2C) physical interfaces for driving
+	 * it's functionalities.
+	 *
+	 * Then the bind of "simple regulator" device in the "simple pmic"
+	 * drivers 'probe', is called with args:
+	 * ret = device_bind(parent, reg_drv, parent->name, NULL,
+	 *                   regulator_fdt_of_offset, &reg_dev);
+	 *
+	 * In this case "driver.platdata_auto_alloc_size"
+	 */
+
+	/**
+	 * Here driver should get the 'regulator-voltage' node data
+	 * into a proper descriptors.
+	 * Actually there is no standard voltage description in dts,
+	 * but please check trats2 or odroid dts files and regulator/max77686.c
+	 * driver file to check some simple solution.
+	 *
+	 */
+	return 0;
+}
+
+static const struct dm_regulator_ops simple_regulator_ops = {
+	.get_ldo_cnt	     = simple_regulator_get_ldo_cnt,
+	.get_buck_cnt	     = simple_regulator_get_buck_cnt,
+	.get_val_desc	     = simple_regulator_get_val_desc,
+	.get_mode_desc_array = simple_regulator_get_mode_desc_array,
+	.ldo_val	     = simple_regulator_ldo_val,
+	.buck_val	     = simple_regulator_buck_val,
+	.ldo_mode	     = simple_regulator_ldo_mode,
+	.buck_mode	     = simple_regulator_buck_mode,
+};
+
+U_BOOT_DRIVER(simple_regulator) = {
+	.name = "simple regulator",
+	.id = UCLASS_PMIC_REGULATOR,
+	.ops = &simple_regulator_ops,
+	.ofdata_to_platdata = reg_simple_regulator_ofdata_to_platdata,
+	.priv_auto_alloc_size = sizeof(struct simple_regulator_info),
+
+	/**
+	 * .platdata_auto_alloc_size - is optional, only if regulator uses
+	 *                             a different interface than parent pmic.
+	 */
+	.platdata_auto_alloc_size = sizeof(struct pmic_platdata),
+};
+
+8. Regulator command
+====================
+The extension for 'pmic' command is a 'regulator' command.
+This actually uses the same code, but provides an interface
+to pmic optional 'UCLASS_PMIC_REGULATOR' operations.
+
+If pmic device driver provides support to this another pmic
+uclass, then this command provides useful user interface.
+
+This was designed to allow safe I/O access to pmic device
+without the pmic documentation. If driver provide each regulator
+- value and mode descriptor - then user can operate on it.
+
+Command options (regulator [option]):
+- list     - list UCLASS regulator devices
+- dev [id] - show or set current regulator device
+- dump     - dump registers of current regulator
+- [ldo/buck][N] [name/state/desc]- print regulator(s) info
+- [ldoN/buckN] [setval/setmode] [mV/modeN] [-f] - set val (mV)
+(forcibly) or mode - only if desc available
+
+Example of usage:
+regulator list - look after regulator 'Id' number
+regulator dev 'Id'  - set current device
+regulator ldo state - list state of current device all ldo's
+regulator ldo desc  - list ldo's descriptors
+regulator ldo1 setval 1000 - set device ldo 1 voltage to 1000mV
+regulator ldo1 setval 1200 -f - if value exceeds limits - set force
+regulator ldo1 setmode 5 - set device ldo 1 mode to '5' (force no available)
+
+The same for 'buck' regulators.
+
+Note:
+The regulator descriptor 'min' and 'max' limits prevents setting
+unsafe value. But sometimes it is useful to change the regulator
+value for some test - so the force option (-f) is available.
+This option is not available for change the mode, since this depends
+on a pmic device design, but the required voltage value can change,
+e.g. if some hardware uses pins header.
