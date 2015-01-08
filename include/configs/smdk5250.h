@@ -19,7 +19,9 @@
 #include <configs/exynos5250-common.h>
 
 /* PMIC */
+#ifndef CONFIG_DM_I2C
 #define CONFIG_POWER_MAX77686
+#endif
 
 #define CONFIG_BOARD_COMMON
 #define CONFIG_ARCH_EARLY_INIT_R
