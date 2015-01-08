@@ -29,7 +29,9 @@
 #define CONFIG_SYS_INIT_SP_ADDR	CONFIG_IRAM_STACK
 
 /* Sound */
+#ifndef CONFIG_DM_I2C
 #define CONFIG_CMD_SOUND
+#endif
 #ifdef CONFIG_CMD_SOUND
 #define CONFIG_SOUND
 #define CONFIG_I2S_SAMSUNG
