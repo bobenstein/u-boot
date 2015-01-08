@@ -19,9 +19,11 @@
 #include "exynos5-common.h"
 
 /* PMIC */
+#ifndef CONFIG_DM_I2C
 #define CONFIG_POWER
 #define CONFIG_POWER_I2C
 #define CONFIG_POWER_TPS65090
+#endif
 
 /* Enable keyboard */
 #define CONFIG_CROS_EC		/* CROS_EC protocol */
