@@ -32,7 +32,9 @@
 #define CONFIG_SYS_PROMPT	"Peach-Pit # "
 #define CONFIG_IDENT_STRING	" for Peach-Pit"
 
+#ifndef CONFIG_DM_I2C
 #define CONFIG_VIDEO_PARADE
+#endif
 
 /* Display */
 #define CONFIG_LCD
