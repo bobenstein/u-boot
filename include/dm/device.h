@@ -335,6 +335,22 @@ int device_get_child_by_of_offset(struct udevice *parent, int seq,
 				  struct udevice **devp);
 
 /**
+ * device_get_first_child_by_uclass_id() - Get the first child device based
+ *                                         on UCLASS_ID
+ *
+ * Locates a child device by its uclass id.
+ *
+ * The device is probed to activate it ready for use.
+ *
+ * @parent: Parent device
+ * @uclass_id: child uclass id
+ * @devp: Returns pointer to device if found, otherwise this is set to NULL
+ * @return 0 if OK, -ve on error
+ */
+int device_get_first_child_by_uclass_id(struct udevice *parent, int uclass_id,
+					struct udevice **devp);
+
+/**
  * device_find_first_child() - Find the first child of a device
  *
  * @parent: Parent device to search

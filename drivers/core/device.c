@@ -397,6 +397,21 @@ int device_find_child_by_of_offset(struct udevice *parent, int of_offset,
 	return -ENODEV;
 }
 
+int device_get_first_child_by_uclass_id(struct udevice *parent, int uclass_id,
+					struct udevice **devp)
+{
+	struct udevice *dev;
+
+	*devp = NULL;
+
+	list_for_each_entry(dev, &parent->child_head, sibling_node) {
+		if (dev->driver->id == uclass_id)
+			return device_get_device_tail(dev, 0, devp);
+	}
+
+	return -ENODEV;
+}
+
 int device_get_child_by_of_offset(struct udevice *parent, int seq,
 				  struct udevice **devp)
 {
