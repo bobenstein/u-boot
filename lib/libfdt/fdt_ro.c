@@ -567,19 +567,27 @@ int fdt_get_string(const void *fdt, int node, const char *property,
 	return fdt_get_string_index(fdt, node, property, 0, output);
 }
 
-int fdt_node_check_compatible(const void *fdt, int nodeoffset,
-			      const char *compatible)
+int fdt_node_check_prop_compatible(const void *fdt, int nodeoffset,
+				   const char *prop_name,
+				   const char *compatible)
 {
 	const void *prop;
 	int len;
 
-	prop = fdt_getprop(fdt, nodeoffset, "compatible", &len);
+	prop = fdt_getprop(fdt, nodeoffset, prop_name, &len);
 	if (!prop)
 		return len;
 	if (fdt_stringlist_contains(prop, len, compatible))
 		return 0;
 	else
 		return 1;
+}
+
+int fdt_node_check_compatible(const void *fdt, int nodeoffset,
+			      const char *compatible)
+{
+	return fdt_node_check_prop_compatible(fdt, nodeoffset, "compatible",
+					      compatible);
 }
 
 int fdt_node_offset_by_compatible(const void *fdt, int startoffset,

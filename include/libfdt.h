@@ -807,6 +807,33 @@ int fdt_node_offset_by_prop_value(const void *fdt, int startoffset,
 int fdt_node_offset_by_phandle(const void *fdt, uint32_t phandle);
 
 /**
+ * fdt_node_check_prop_compatible: check a node's 'property_name' for compatible
+ * @fdt: pointer to the device tree blob
+ * @nodeoffset: offset of a tree node
+ * @property_name: name of property within looking for the 'compatible' string
+ * @compatible: string to match against
+ *
+ *
+ * fdt_node_check_prop_compatible() returns 0 if the given node contains a
+ * 'compatible' property with the given string as one of its elements,
+ * it returns non-zero otherwise, or on error.
+ *
+ * returns:
+ *	0, if the node has a 'compatible' property listing the given string
+ *	1, if the node has a 'compatible' property, but it does not list
+ *		the given string
+ *	-FDT_ERR_NOTFOUND, if the given node has no 'compatible' property
+ *	-FDT_ERR_BADOFFSET, if nodeoffset does not refer to a BEGIN_NODE tag
+ *	-FDT_ERR_BADMAGIC,
+ *	-FDT_ERR_BADVERSION,
+ *	-FDT_ERR_BADSTATE,
+ *	-FDT_ERR_BADSTRUCTURE, standard meanings
+ */
+int fdt_node_check_prop_compatible(const void *fdt, int nodeoffset,
+				   const char *property_name,
+				   const char *compatible);
+
+/**
  * fdt_node_check_compatible: check a node's compatible property
  * @fdt: pointer to the device tree blob
  * @nodeoffset: offset of a tree node
