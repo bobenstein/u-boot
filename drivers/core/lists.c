@@ -99,14 +99,17 @@ int device_bind_driver(struct udevice *parent, const char *drv_name,
  * @param blob:		Device tree pointer
  * @param offset:	Offset of node in device tree
  * @param of_match:	List of compatible strings to match
+ * @param prop:		Name of compatible string property
  * @param of_idp:	Returns the match that was found
  * @return 0 if there is a match, -ENOENT if no match, -ENODEV if the node
  * does not have a compatible string, other error <0 if there is a device
  * tree error
  */
-static int driver_check_compatible(const void *blob, int offset,
-				   const struct udevice_id *of_match,
-				   const struct udevice_id **of_idp)
+static int driver_check_prop_compatible(const void *blob,
+					int offset,
+					const char *prop,
+					const struct udevice_id *of_match,
+					const struct udevice_id **of_idp)
 {
 	int ret;
 
@@ -115,8 +118,8 @@ static int driver_check_compatible(const void *blob, int offset,
 		return -ENOENT;
 
 	while (of_match->compatible) {
-		ret = fdt_node_check_compatible(blob, offset,
-						of_match->compatible);
+		ret = fdt_node_check_prop_compatible(blob, offset, prop,
+						     of_match->compatible);
 		if (!ret) {
 			*of_idp = of_match;
 			return 0;
@@ -131,8 +134,8 @@ static int driver_check_compatible(const void *blob, int offset,
 	return -ENOENT;
 }
 
-int lists_bind_fdt(struct udevice *parent, const void *blob, int offset,
-		   struct udevice **devp)
+int lists_bind_fdt_by_prop(struct udevice *parent, const void *blob, int offset,
+			   const char *prop, struct udevice **devp)
 {
 	struct driver *driver = ll_entry_start(struct driver, driver);
 	const int n_ents = ll_entry_count(struct driver, driver);
@@ -148,8 +151,8 @@ int lists_bind_fdt(struct udevice *parent, const void *blob, int offset,
 	if (devp)
 		*devp = NULL;
 	for (entry = driver; entry != driver + n_ents; entry++) {
-		ret = driver_check_compatible(blob, offset, entry->of_match,
-					      &id);
+		ret = driver_check_prop_compatible(blob, offset, prop,
+						   entry->of_match, &id);
 		name = fdt_get_name(blob, offset, NULL);
 		if (ret == -ENOENT) {
 			continue;
@@ -182,5 +185,12 @@ int lists_bind_fdt(struct udevice *parent, const void *blob, int offset,
 	}
 
 	return result;
+}
+
+int lists_bind_fdt(struct udevice *parent, const void *blob, int offset,
+		   struct udevice **devp)
+{
+	return lists_bind_fdt_by_prop(parent, blob, offset, "compatible", devp);
+
 }
 #endif

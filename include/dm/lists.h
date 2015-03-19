@@ -45,6 +45,24 @@ struct uclass_driver *lists_uclass_lookup(enum uclass_id id);
 int lists_bind_drivers(struct udevice *parent, bool pre_reloc_only);
 
 /**
+ * lists_bind_fdt_by_prop() - bind a device tree node by the given compatible
+ * property name.
+ *
+ * This creates a new device bound to the given device tree node, with
+ * @parent as its parent.
+ *
+ * @parent: parent device (root)
+ * @blob: device tree blob
+ * @offset: offset of this device tree node
+ * @prop: fdt property name within looking for the driver compatible string
+ * @devp: if non-NULL, returns a pointer to the bound device
+ * @return 0 if device was bound, -EINVAL if the device tree is invalid,
+ * other -ve value on error
+ */
+int lists_bind_fdt_by_prop(struct udevice *parent, const void *blob, int offset,
+			   const char *prop, struct udevice **devp);
+
+/**
  * lists_bind_fdt() - bind a device tree node
  *
  * This creates a new device bound to the given device tree node, with
