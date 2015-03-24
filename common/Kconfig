@@ -348,5 +348,27 @@ config DM_PMIC_CMD
 	  - pmic read address  - read byte of register at address
 	  - pmic write address - write byte to register at address
 	  The only one change for this command is 'dev' subcommand.
+
+config DM_REGULATOR_CMD
+	bool "Enable Driver Model REGULATOR command"
+	depends on DM_REGULATOR
+	help
+	  This command is based on driver model regulator api.
+	  User interface features:
+	  - list                   - list UCLASS regulator devices
+	  - regulator dev [id]     - show or [set] operating regulator device
+	  - regulator [info]       - print constraints info
+	  - regulator [status]     - print operating status
+	  - regulator [value] [-f] - print/[set] voltage value [uV] (force)
+	  - regulator [current]    - print/[set] current value [uA]
+	  - regulator [mode_id]    - print/[set] operating mode id
+	  - regulator [enable]     - enable the regulator output
+	  - regulator [disable]    - disable the regulator output
+
+	  The 'force' option can be used for setting the value which exceeds
+	  the limit which are found in device-tree and are keept in regulators
+	  info structure.
+
 endmenu
+
 endmenu

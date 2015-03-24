@@ -211,6 +211,7 @@ obj-$(CONFIG_CMD_GPT) += cmd_gpt.o
 
 # Power
 obj-$(CONFIG_DM_PMIC_CMD) += cmd_pmic.o
+obj-$(CONFIG_DM_REGULATOR_CMD) += cmd_regulator.o
 endif
 
 ifdef CONFIG_SPL_BUILD
