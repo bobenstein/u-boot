@@ -5,4 +5,5 @@
 # SPDX-License-Identifier:	GPL-2.0+
 #
 
+obj-$(CONFIG_DM_REGULATOR_FIXED) += fixed.o
 obj-$(CONFIG_DM_REGULATOR_MAX77686) += max77686.o
