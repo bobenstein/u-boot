@@ -335,4 +335,18 @@ config CMD_SETGETDCR
 
 endmenu
 
+menu "Power commands"
+config DM_PMIC_CMD
+	bool "Enable Driver Model PMIC command"
+	depends on DM_PMIC
+	help
+	  This is new command for the pmic devices based on driver model pmic api.
+	  Command features are unchanged:
+	  - list               - list UCLASS pmic devices
+	  - pmic dev [id]      - show or [set] operating pmic device (NEW)
+	  - pmic dump          - dump registers
+	  - pmic read address  - read byte of register at address
+	  - pmic write address - write byte to register at address
+	  The only one change for this command is 'dev' subcommand.
+endmenu
 endmenu
