@@ -27,8 +27,8 @@ static ulong str_get_num(const char *ptr, const char *maxptr)
 	return simple_strtoul(ptr, NULL, 0);
 }
 
-int pmic_bind_childs(struct udevice *pmic, int offset,
-		     const struct pmic_child_info *child_info)
+int pmic_bind_children(struct udevice *pmic, int offset,
+		       const struct pmic_child_info *child_info)
 {
 	const struct pmic_child_info *info;
 	const void *blob = gd->fdt_blob;
@@ -68,6 +68,7 @@ int pmic_bind_childs(struct udevice *pmic, int offset,
 			if (!drv) {
 				debug("  - driver: '%s' not found!\n",
 				      info->driver);
+				info++;
 				continue;
 			}
 
@@ -77,6 +78,7 @@ int pmic_bind_childs(struct udevice *pmic, int offset,
 					  node, &child);
 			if (ret) {
 				debug("  - child binding error: %d\n", ret);
+				info++;
 				continue;
 			}
 
@@ -110,16 +112,16 @@ int pmic_get(const char *name, struct udevice **devp)
 int pmic_reg_count(struct udevice *dev)
 {
 	const struct dm_pmic_ops *ops = dev_get_driver_ops(dev);
-	if (!ops)
+
+	if (!ops || !ops->reg_count)
 		return -ENOSYS;
 
-	return ops->reg_count;
+	return ops->reg_count(dev);
 }
 
 int pmic_read(struct udevice *dev, uint reg, uint8_t *buffer, int len)
 {
 	const struct dm_pmic_ops *ops = dev_get_driver_ops(dev);
-	int ret;
 
 	if (!buffer)
 		return -EFAULT;
@@ -127,17 +129,12 @@ int pmic_read(struct udevice *dev, uint reg, uint8_t *buffer, int len)
 	if (!ops || !ops->read)
 		return -ENOSYS;
 
-	ret = ops->read(dev, reg, buffer, len);
-	if (ret)
-		return ret;
-
-	return 0;
+	return ops->read(dev, reg, buffer, len);
 }
 
 int pmic_write(struct udevice *dev, uint reg, const uint8_t *buffer, int len)
 {
 	const struct dm_pmic_ops *ops = dev_get_driver_ops(dev);
-	int ret;
 
 	if (!buffer)
 		return -EFAULT;
@@ -145,11 +142,7 @@ int pmic_write(struct udevice *dev, uint reg, const uint8_t *buffer, int len)
 	if (!ops || !ops->write)
 		return -ENOSYS;
 
-	ret = ops->write(dev, reg, buffer, len);
-	if (ret)
-		return ret;
-
-	return 0;
+	return ops->write(dev, reg, buffer, len);
 }
 
 UCLASS_DRIVER(pmic) = {
