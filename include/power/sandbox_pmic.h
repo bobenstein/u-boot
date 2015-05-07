@@ -186,4 +186,37 @@ enum {
 #define LDO2_UV_REG_DEFAULT	LDO2_UV_TO_REG(OUT_LDO2_UV_DEFAULT)
 #define LDO2_OM_REG_DEFAULT	OUT_OM_SET(OUT_LDO2_OM_DEFAULT)
 
+/* Test data for: test/dm/power.c */
+
+/* BUCK names */
+#define SANDBOX_BUCK1_DEVNAME	"buck1"
+#define SANDBOX_BUCK1_PLATNAME	"SUPPLY_1.2V"
+#define SANDBOX_BUCK2_DEVNAME	"buck2"
+#define SANDBOX_BUCK2_PLATNAME	"SUPPLY_3.3V"
+/* LDO names */
+#define SANDBOX_LDO1_DEVNAME	"ldo1"
+#define SANDBOX_LDO1_PLATNAME	"VDD_EMMC_1.8V"
+#define SANDBOX_LDO2_DEVNAME	"ldo2"
+#define SANDBOX_LDO2_PLATNAME	"VDD_LCD_3.3V"
+
+/*
+ * Expected regulators setup after call of:
+ * - regulator_autoset()
+ * - regulator_list_autoset()
+ */
+
+/* BUCK1: for testing regulator_autoset() */
+#define SANDBOX_BUCK1_AUTOSET_EXPECTED_UV	1200000
+#define SANDBOX_BUCK1_AUTOSET_EXPECTED_UA	200000
+#define SANDBOX_BUCK1_AUTOSET_EXPECTED_ENABLE	true
+
+/* LDO1/2 for testing regulator_list_autoset() */
+#define SANDBOX_LDO1_AUTOSET_EXPECTED_UV	1800000
+#define SANDBOX_LDO1_AUTOSET_EXPECTED_UA	100000
+#define SANDBOX_LDO1_AUTOSET_EXPECTED_ENABLE	true
+
+#define SANDBOX_LDO2_AUTOSET_EXPECTED_UV	OUT_LDO2_UV_DEFAULT
+#define SANDBOX_LDO2_AUTOSET_EXPECTED_UA	-ENOSYS
+#define SANDBOX_LDO2_AUTOSET_EXPECTED_ENABLE	false
+
 #endif

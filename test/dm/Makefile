@@ -24,4 +24,6 @@ obj-$(CONFIG_DM_PCI) += pci.o
 obj-$(CONFIG_DM_SPI_FLASH) += sf.o
 obj-$(CONFIG_DM_SPI) += spi.o
 obj-$(CONFIG_DM_USB) += usb.o
+obj-$(CONFIG_DM_PMIC) += power.o
+obj-$(CONFIG_DM_REGULATOR) += power.o
 endif
