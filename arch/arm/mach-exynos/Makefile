@@ -7,6 +7,7 @@
 
 obj-y	+= clock.o power.o soc.o system.o pinmux.o tzpc.o
 
+obj-$(CONFIG_EXYNOS5420)	+= adc.o
 obj-$(CONFIG_EXYNOS5420)	+= sec_boot.o
 
 ifdef CONFIG_SPL_BUILD
