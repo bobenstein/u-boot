@@ -18,6 +18,7 @@
 #include <usb.h>
 #include <video_bridge.h>
 #include <asm/gpio.h>
+#include <asm/arch/adc.h>
 #include <asm/arch/cpu.h>
 #include <asm/arch/dwmmc.h>
 #include <asm/arch/mmc.h>
@@ -28,6 +29,7 @@
 #include <power/max77686_pmic.h>
 #include <power/regulator.h>
 #include <power/s5m8767.h>
+#include <power/s2mps11.h>
 #include <tmu.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -359,5 +361,117 @@ char *get_dfu_alt_boot(char *interface, char *devstr)
 		alt_boot = CONFIG_DFU_ALT_BOOT_EMMC;
 
 	return alt_boot;
+}
+#endif
+
+#ifdef CONFIG_REVISION_TAG
+/**
+ * Odroix XU3/4 board revisions:
+ * Rev   ADC   Board
+ * 0.1     0   XU3 0.1
+ * 0.2   372   XU3 0.2 | XU3L - no DISPLAYPORT (probe I2C0:0x40 / INA231)
+ * 0.3   739   XU4 0.1
+ * Use +/-20 for ADC value tolerance.
+ */
+enum {
+	ODROID_XU3_REV01,
+	ODROID_XU3_REV02,
+	ODROID_XU4_REV01,
+	ODROID_UNKNOWN_REV,
+	ODROID_REV_COUNT,
+};
+
+struct odroid_type {
+	int board_type;
+	int rev;
+	int adc_val;
+	const char *name;
+};
+
+struct odroid_type odroid_type[] = {
+	{ ODROID_XU3_REV01, 1, 0, "xu3" },
+	{ ODROID_XU3_REV02, 2, 372, "xu3" },
+	{ ODROID_XU4_REV01, 1, 739, "xu4" },
+	{ ODROID_UNKNOWN_REV, 0, 4095, "unknown" },
+};
+
+bool board_is_odroidxu3(void)
+{
+	if (gd->board_type < ODROID_XU4_REV01)
+		return true;
+
+	return false;
+}
+
+bool board_is_odroidxu4(void)
+{
+	if (gd->board_type > ODROID_XU3_REV02)
+		return true;
+
+	return false;
+}
+
+int set_board_type(void)
+{
+	int adcval, i;
+
+	adcval = exynos_adc_read_channel(CONFIG_ODROID_REV_AIN);
+	if (adcval < 0)
+		return adcval;
+
+	for (i = 0; i < ODROID_REV_COUNT; i++) {
+		/* ADC tolerance: +20 */
+		if (adcval < odroid_type[i].adc_val + 20) {
+			gd->board_type = i;
+			return i;
+		}
+	}
+
+	return ODROID_UNKNOWN_REV;
+}
+
+int get_board_rev(void)
+{
+	return odroid_type[gd->board_type].rev;
+}
+
+/**
+ * get_board_type - returns pointer to one of the board type string.
+ * Board types: "xu3", "xu3-lite", "xu4". However the "xu3itel" can be
+ * detected only when the i2c controller is ready to use. Fortunately,
+ * XU3 and XU3L are compatible, and the information about board lite
+ * revision is needed before boot linux, to set proper environment
+ * variable: $fdtfile.
+ */
+const char *get_board_type(void)
+{
+	const char *type_xu3l = "xu3-lite";
+	struct udevice *dev, *chip;
+	int ret;
+
+	if (gd->board_type != ODROID_XU3_REV02)
+		goto exit;
+
+	ret = pmic_get("s2mps11", &dev);
+	if (ret)
+		goto exit;
+
+	/* Enable LDO26: 3.0V */
+	ret = pmic_reg_write(dev, S2MPS11_REG_L26CTRL,
+			     S2MPS11_LDO26_ENABLE);
+	if (ret)
+		goto exit;
+
+	/* Check XU3Lite by probe INA231 I2C0:0x40 */
+	ret = uclass_get_device(UCLASS_I2C, 0, &dev);
+	if (ret)
+		goto exit;
+
+	ret = dm_i2c_probe(dev, 0x40, 0x0, &chip);
+	if (ret)
+		return type_xu3l;
+
+exit:
+	return odroid_type[gd->board_type].name;
 }
 #endif
