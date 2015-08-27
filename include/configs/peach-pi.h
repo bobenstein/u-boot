@@ -9,6 +9,8 @@
 #ifndef __CONFIG_PEACH_PI_H
 #define __CONFIG_PEACH_PI_H
 
+#define CONFIG_CPU_NAME		"Exynos5800"
+
 #define MEM_LAYOUT_ENV_SETTINGS \
 	"bootm_size=0x10000000\0" \
 	"kernel_addr_r=0x22000000\0" \
