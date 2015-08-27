@@ -30,7 +30,12 @@ u32 get_device_type(void)
 #ifdef CONFIG_DISPLAY_CPUINFO
 int print_cpuinfo(void)
 {
+/* For SoC with no real CPU ID in naming convention. */
+#ifdef CONFIG_CPU_NAME
+	printf("CPU:   %s @ ", CONFIG_CPU_NAME);
+#else
 	printf("CPU:   %s%X @ ", s5p_get_cpu_name(), s5p_cpu_id);
+#endif
 	print_freq(get_arm_clk(), "\n");
 
 	return 0;
