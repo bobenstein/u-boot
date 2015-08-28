@@ -95,6 +95,19 @@ void set_board_info(void)
 		 CONFIG_SYS_SOC, s5p_cpu_id, bdname, bdtype);
 	setenv("fdtfile", info);
 #endif
+
+	/* Board details for test */
+	int i;
+	char *env, *inf[] = { "soc_rev", "soc_id", "board_rev",
+			      "boardname", "fdtfile" };
+
+	printf("Board details:\n");
+	for (i = 0; i < ARRAY_SIZE(inf); i++) {
+		env = getenv(inf[i]);
+		if (!env)
+			env = "undefined";
+		printf("%s: %s\n", inf[i], env);
+	}
 }
 #endif /* CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG */
 
