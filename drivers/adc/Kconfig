@@ -1,0 +1,8 @@
+config ADC
+	bool "Enable ADC drivers using Driver Model"
+	help
+	  This allows drivers to be provided for ADCs to drive their features,
+	  trough simple ADC uclass driver interface, with operations:
+	  - device enable
+	  - conversion init
+	  - conversion start and return data with data mask
