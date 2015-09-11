@@ -6,3 +6,12 @@ config ADC
 	  - device enable
 	  - conversion init
 	  - conversion start and return data with data mask
+
+config ADC_EXYNOS
+	bool "Enable Exynos 54xx ADC driver"
+	help
+	  This enables basic driver for Exynos ADC compatible with Exynos54xx.
+	  It provides:
+	  - 10 analog input channels
+	  - 12-bit resolution
+	  - 600 KSPS of sample rate
